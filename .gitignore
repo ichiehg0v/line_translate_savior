@@ -1,0 +1,39 @@
+# 環境變數
+.env
+.env.local
+.env.*.local
+
+# 憑證
+*.pem
+credentials/service-account.json
+credentials/*.json
+
+# 依賴包
+node_modules/
+
+# 日誌
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 編輯器相關
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 操作系統相關
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel
+
+# 其他
+dist/
+coverage/
+.cache/
+
+.history/
