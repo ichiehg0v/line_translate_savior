@@ -79,11 +79,19 @@ async function getLanguageSettings(userId) {
             console.log('Found user row:', userRow);
             
             if (userRow) {
+                // 如果是舊資料（沒有 isVerified 欄位），預設為 false
+                const isVerified = userRow[3] === 'true';
+                
+                // 如果是舊資料但有語言設定，自動更新資料格式
+                if (userRow[1] && userRow[3] === undefined) {
+                    await setLanguageSettings(userId, userRow[1].split(',').map(lang => lang.trim()), false);
+                }
+
                 return {
                     userId: userRow[0],
                     languages: userRow[1]?.split(',').map(lang => lang.trim()) || [],
                     lastUpdated: userRow[2],
-                    isVerified: userRow[3] === 'true',
+                    isVerified: isVerified,
                     rowIndex: rows.indexOf(userRow) + 1
                 };
             }
