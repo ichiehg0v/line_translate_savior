@@ -77,7 +77,11 @@ async function handleEvent(event) {
         if (!settings || !settings.languages || settings.languages.length === 0) {
             return client.replyMessage(event.replyToken, {
                 type: 'text',
-                text: '請先使用 /set 命令設定目標語言。\n例如：/set 繁體中文 日文 韓文'
+                text: '請先使用 /set 命令設定目標語言。\n例如：'
+            });
+            return client.replyMessage(event.replyToken, {
+                type: 'text',
+                text: '/set 繁體中文 日文 韓文'
             });
         }
 

@@ -20,7 +20,7 @@ async function translateText(text, targetLanguages) {
         });
 
         const englishText = englishResponse.choices[0].message.content;
-        const translations = [englishText]; // 將英文翻譯加入結果列表
+        const translations = { 'English': englishText }; // 使用物件來儲存翻譯結果
 
         // 翻譯成其他目標語言
         for (const targetLang of targetLanguages) {
@@ -37,11 +37,11 @@ async function translateText(text, targetLanguages) {
                 }]
             });
 
-            translations.push(response.choices[0].message.content);
+            translations[targetLang] = response.choices[0].message.content;
         }
 
-        // 返回所有翻譯結果
-        return translations.join('\n\n');
+        // 返回翻譯結果物件
+        return translations;
     } catch (error) {
         console.error('Translation error:', error);
         throw error;
