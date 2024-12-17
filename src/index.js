@@ -22,7 +22,7 @@ const PASSPHRASE = "大大武花大武花";
 
 // 新增健康檢查端點
 app.get('/', (req, res) => {
-    res.send('Server is running');
+    res.send('Hello Wolrd!');
 });
 
 // 將路徑改回 /webhook
