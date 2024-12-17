@@ -22,7 +22,7 @@ const PASSPHRASE = "大大武花大武花";
 
 // 新增健康檢查端點
 app.get('/', (req, res) => {
-    res.send('Hello Wolrd!');
+    res.send('Hello World!');
 });
 
 // 將路徑改回 /webhook
@@ -41,24 +41,31 @@ async function handleEvent(event) {
         return null;
     }
 
-    const userId = event.source.userId || event.source.groupId;
+    const sourceType = event.source.type; // 'user' 或 'group'
+    const id = sourceType === 'user' ? event.source.userId : event.source.groupId;
     const inputText = event.message.text.trim();
 
-    console.log('Received message:', inputText, 'from user:', userId);
+    console.log(`Received ${sourceType} message:`, inputText, 'from:', id);
 
     // 檢查是否為通關密語
     if (inputText === PASSPHRASE) {
-        console.log('Passphrase matched for user:', userId);
-        await updateVerificationStatus(userId, true);
+        console.log('Passphrase matched for:', id);
+        if (sourceType === 'group') {
+            // 如果是群組，記錄驗證者的 userId
+            const verifierId = event.source.userId;
+            await updateVerificationStatus(id, true, sourceType, verifierId);
+        } else {
+            await updateVerificationStatus(id, true, sourceType);
+        }
         return client.replyMessage(event.replyToken, {
             type: 'text',
             text: '✨ 驗證成功！現在你可以使用翻譯功能了。\n\n請使用 /set 命令設定目標語言，例如：\n/set 繁體中文 日文 韓文'
         });
     }
 
-    // 檢查用戶是否已驗證
-    const verified = await isUserVerified(userId);
-    console.log('User verification status:', verified);
+    // 檢查是否已驗證
+    const verified = await isUserVerified(id, sourceType);
+    console.log('Verification status:', verified);
     if (!verified) {
         return client.replyMessage(event.replyToken, {
             type: 'text',
@@ -73,15 +80,11 @@ async function handleEvent(event) {
 
     // 處理翻譯請求
     try {
-        const settings = await getLanguageSettings(userId);
+        const settings = await getLanguageSettings(id, sourceType);
         if (!settings || !settings.languages || settings.languages.length === 0) {
             return client.replyMessage(event.replyToken, {
                 type: 'text',
-                text: '請先使用 /set 命令設定目標語言。\n例如：'
-            });
-            return client.replyMessage(event.replyToken, {
-                type: 'text',
-                text: '/set 繁體中文 日文 韓文'
+                text: '請先使用 /set 命令設定目標語言。\n例如：/set 繁體中文 日文 韓文'
             });
         }
 
@@ -102,18 +105,26 @@ async function handleEvent(event) {
 }
 
 async function handleSetLanguage(event) {
-    const userId = event.source.userId || event.source.groupId;
-    const languages = event.message.text.slice(4).trim().split(/\s+/).filter(Boolean);
-
-    if (languages.length === 0) {
-        return client.replyMessage(event.replyToken, {
-            type: 'text',
-            text: '請指定至少一種目標語言。\n例如：/set 繁體中文 日文 韓文'
-        });
-    }
+    const sourceType = event.source.type;
+    const id = sourceType === 'user' ? event.source.userId : event.source.groupId;
+    const languages = event.message.text.slice(4).trim().split(/[,，\s]+/).filter(Boolean);
 
     try {
-        await setLanguageSettings(userId, languages, true);
+        if (languages.length === 0) {
+            return client.replyMessage(event.replyToken, {
+                type: 'text',
+                text: '請指定至少一個目標語言。\n例如：/set 繁體中文 日文 韓文'
+            });
+        }
+
+        // 如果是群組，記錄設定者的 userId
+        if (sourceType === 'group') {
+            const setterId = event.source.userId;
+            await setLanguageSettings(id, languages, true, sourceType, setterId);
+        } else {
+            await setLanguageSettings(id, languages, true, sourceType);
+        }
+
         return client.replyMessage(event.replyToken, {
             type: 'text',
             text: `已設定翻譯語言為：${languages.join('、')}`

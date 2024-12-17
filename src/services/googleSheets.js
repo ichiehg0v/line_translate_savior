@@ -5,8 +5,8 @@ require('dotenv').config();
 
 // Sheet 設定
 const SHEET_NAME = 'Sheet1';
-const FULL_RANGE = `${SHEET_NAME}!A:D`;
-const HEADERS = ['userId/groupId', 'languages', 'lastUpdated', 'isVerified'];
+const FULL_RANGE = `${SHEET_NAME}!A:F`;  // 增加 lastModifiedBy 欄位
+const HEADERS = ['id', 'type', 'languages', 'lastUpdated', 'isVerified', 'lastModifiedBy'];  // 修改欄位結構
 
 // 初始化 Google Sheets 客戶端
 async function getAuthClient() {
@@ -38,7 +38,7 @@ async function ensureHeaders(auth, spreadsheetId) {
         const response = await sheets.spreadsheets.values.get({
             auth,
             spreadsheetId,
-            range: `${SHEET_NAME}!A1:D1`,
+            range: `${SHEET_NAME}!A1:F1`,
         });
 
         const currentHeaders = response.data.values?.[0] || [];
@@ -46,7 +46,7 @@ async function ensureHeaders(auth, spreadsheetId) {
             await sheets.spreadsheets.values.update({
                 auth,
                 spreadsheetId,
-                range: `${SHEET_NAME}!A1:D1`,
+                range: `${SHEET_NAME}!A1:F1`,
                 valueInputOption: 'RAW',
                 resource: {
                     values: [HEADERS],
@@ -66,7 +66,7 @@ function arraysEqual(a, b) {
 }
 
 // 讀取設定
-async function getLanguageSettings(userId) {
+async function getLanguageSettings(id, type = 'user') {
     try {
         const auth = await getCachedAuthClient();
         const spreadsheetId = process.env.GOOGLE_SHEET_ID;
@@ -78,30 +78,27 @@ async function getLanguageSettings(userId) {
         });
 
         const rows = response.data.values || [];
-        const userRow = rows.find(row => row[0] === userId);
+        const settingRow = rows.find(row => row[0] === id && row[1] === type);
 
-        if (!userRow) {
+        if (!settingRow) {
             return null;
         }
 
         let languages = [];
-        if (userRow[1]) {
+        if (settingRow[2]) {
             try {
-                // 嘗試解析 JSON 格式
-                languages = JSON.parse(userRow[1]);
+                languages = JSON.parse(settingRow[2]);
             } catch (e) {
-                // 如果不是 JSON 格式，假設是舊的逗號分隔格式
-                languages = userRow[1].split(',').map(lang => lang.trim());
-                
-                // 更新為新格式
-                await setLanguageSettings(userId, languages, userRow[3] === 'true');
+                languages = settingRow[2].split(',').map(lang => lang.trim());
+                await setLanguageSettings(id, languages, settingRow[4] === 'true', type, settingRow[5]);
             }
         }
 
         return {
             languages: languages,
-            lastUpdated: userRow[2] || null,
-            isVerified: userRow[3] === 'true'
+            lastUpdated: settingRow[3] || null,
+            isVerified: settingRow[4] === 'true',
+            lastModifiedBy: settingRow[5] || null
         };
     } catch (error) {
         console.error('Error getting language settings:', error);
@@ -110,7 +107,7 @@ async function getLanguageSettings(userId) {
 }
 
 // 儲存設定
-async function setLanguageSettings(userId, languages, isVerified = false) {
+async function setLanguageSettings(id, languages, isVerified = false, type = 'user', modifiedBy = null) {
     try {
         const auth = await getCachedAuthClient();
         const spreadsheetId = process.env.GOOGLE_SHEET_ID;
@@ -124,12 +121,11 @@ async function setLanguageSettings(userId, languages, isVerified = false) {
         });
 
         const rows = response.data.values || [];
-        const rowIndex = rows.findIndex(row => row[0] === userId);
+        const rowIndex = rows.findIndex(row => row[0] === id && row[1] === type);
         const now = new Date().toISOString();
-        const newRow = [userId, JSON.stringify(languages), now, isVerified.toString()];
+        const newRow = [id, type, JSON.stringify(languages), now, isVerified.toString(), modifiedBy];
 
         if (rowIndex === -1) {
-            // Add new row
             await sheets.spreadsheets.values.append({
                 auth,
                 spreadsheetId,
@@ -140,11 +136,10 @@ async function setLanguageSettings(userId, languages, isVerified = false) {
                 },
             });
         } else {
-            // Update existing row
             await sheets.spreadsheets.values.update({
                 auth,
                 spreadsheetId,
-                range: `${SHEET_NAME}!A${rowIndex + 1}:D${rowIndex + 1}`,
+                range: `${SHEET_NAME}!A${rowIndex + 1}:F${rowIndex + 1}`,
                 valueInputOption: 'RAW',
                 resource: {
                     values: [newRow],
@@ -158,21 +153,21 @@ async function setLanguageSettings(userId, languages, isVerified = false) {
 }
 
 // 更新驗證狀態
-async function updateVerificationStatus(userId, isVerified) {
-    const settings = await getLanguageSettings(userId);
+async function updateVerificationStatus(id, isVerified, type = 'user', modifiedBy = null) {
+    const settings = await getLanguageSettings(id, type);
     const languages = settings ? settings.languages : [];
-    return setLanguageSettings(userId, languages, isVerified);
+    return setLanguageSettings(id, languages, isVerified, type, modifiedBy);
 }
 
 // 檢查使用者是否已有設定
-async function hasLanguageSettings(userId) {
-    const settings = await getLanguageSettings(userId);
+async function hasLanguageSettings(id, type = 'user') {
+    const settings = await getLanguageSettings(id, type);
     return settings !== null;
 }
 
-// 檢查使用者是否已驗證
-async function isUserVerified(userId) {
-    const settings = await getLanguageSettings(userId);
+// 檢查是否已驗證
+async function isUserVerified(id, type = 'user') {
+    const settings = await getLanguageSettings(id, type);
     return settings ? settings.isVerified : false;
 }
 
