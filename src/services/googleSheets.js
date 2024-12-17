@@ -84,8 +84,22 @@ async function getLanguageSettings(userId) {
             return null;
         }
 
+        let languages = [];
+        if (userRow[1]) {
+            try {
+                // 嘗試解析 JSON 格式
+                languages = JSON.parse(userRow[1]);
+            } catch (e) {
+                // 如果不是 JSON 格式，假設是舊的逗號分隔格式
+                languages = userRow[1].split(',').map(lang => lang.trim());
+                
+                // 更新為新格式
+                await setLanguageSettings(userId, languages, userRow[3] === 'true');
+            }
+        }
+
         return {
-            languages: userRow[1] ? JSON.parse(userRow[1]) : [],
+            languages: languages,
             lastUpdated: userRow[2] || null,
             isVerified: userRow[3] === 'true'
         };
