@@ -9,7 +9,7 @@ async function translateText(text, targetLanguages) {
     try {
         // 首先翻譯成英文
         const englishResponse = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-4.1-nano",
             messages: [{
                 role: "system",
                 content: `You are a professional translator. Please rewrite the input text to English only. No additional explanations needed.`
@@ -27,7 +27,7 @@ async function translateText(text, targetLanguages) {
             if (targetLang.toLowerCase() === 'english') continue; // 跳過英文
 
             const response = await openai.chat.completions.create({
-                model: "gpt-4o",
+                model: "gpt-4.1-nano",
                 messages: [{
                     role: "system",
                     content: `You are a professional translator. Please rewrite the following English text to ${targetLang}. No additional explanations needed.`
