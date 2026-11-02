@@ -45,11 +45,11 @@ async function handleEvent(event) {
     const id = sourceType === 'user' ? event.source.userId : event.source.groupId;
     const inputText = event.message.text.trim();
 
-    console.log(`Received ${sourceType} message:`, inputText, 'from:', id);
+    console.log(`Received ${sourceType} message, length: ${inputText.length}`);
 
     // 檢查是否為通關密語
     if (inputText === PASSPHRASE) {
-        console.log('Passphrase matched for:', id);
+        console.log('Passphrase matched');
         if (sourceType === 'group') {
             // 如果是群組，記錄驗證者的 userId
             const verifierId = event.source.userId;
