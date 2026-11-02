@@ -18,7 +18,7 @@ const config = {
 const client = new line.Client(config);
 const app = express();
 
-const PASSPHRASE = "大大武花大武花";
+const PASSPHRASE = process.env.PASSPHRASE;
 
 // 新增健康檢查端點
 app.get('/', (req, res) => {
