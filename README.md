@@ -8,7 +8,7 @@
 2. **群組對話支援**：適用於 LINE 群組，協助群組成員跨語言溝通，也可以在一對一聊天中使用。
 3. **簡易設定命令**：使用 `/set` 命令快速設定目標語言。
 4. **安全機制**：通關密語驗證，避免未經授權使用。
-5. **翻譯模型**：目前使用 OpenAI `gpt-4o-mini`，設定在 `src/services/translationService.js`。
+5. **翻譯模型**：目前使用 OpenAI `gpt-6-luna`，設定在 `src/services/translationService.js`。
 
 ---
 
