@@ -10,6 +10,7 @@ async function translateText(text, targetLanguages) {
         // 首先翻譯成英文
         const englishResponse = await openai.chat.completions.create({
             model: "gpt-6-luna",
+            reasoning_effort: "none",
             messages: [{
                 role: "system",
                 content: `You are a professional translator. Please rewrite the input text to English only. No additional explanations needed.`
@@ -28,6 +29,7 @@ async function translateText(text, targetLanguages) {
 
             const response = await openai.chat.completions.create({
                 model: "gpt-6-luna",
+                reasoning_effort: "none",
                 messages: [{
                     role: "system",
                     content: `You are a professional translator. Please rewrite the following English text to ${targetLang}. No additional explanations needed.`
