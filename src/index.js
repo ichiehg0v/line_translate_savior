@@ -7,6 +7,12 @@ const {
     updateVerificationStatus,
     isUserVerified
 } = require('./services/googleSheets');
+const {
+    MAX_TARGET_LANGUAGES,
+    MAX_LANGUAGE_NAME_LENGTH,
+    MAX_TRANSLATION_INPUT_LENGTH,
+    normalizeTargetLanguages
+} = require('./utils/translationLimits');
 
 require('dotenv').config();
 
@@ -78,6 +84,13 @@ async function handleEvent(event) {
         return handleSetLanguage(event);
     }
 
+    if (inputText.length > MAX_TRANSLATION_INPUT_LENGTH) {
+        return client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: `訊息過長，請將內容縮短至 ${MAX_TRANSLATION_INPUT_LENGTH} 個字元以內。`
+        });
+    }
+
     // 處理翻譯請求
     try {
         const settings = await getLanguageSettings(id, sourceType);
@@ -107,9 +120,11 @@ async function handleEvent(event) {
 async function handleSetLanguage(event) {
     const sourceType = event.source.type;
     const id = sourceType === 'user' ? event.source.userId : event.source.groupId;
-    const languages = event.message.text.slice(4).trim().split(/[,，\s]+/).filter(Boolean);
+    const requestedLanguages = event.message.text.slice(4).trim().split(/[,，\s]+/).filter(Boolean);
 
     try {
+        const languages = normalizeTargetLanguages(requestedLanguages);
+
         if (languages.length === 0) {
             return client.replyMessage(event.replyToken, {
                 type: 'text',
@@ -130,6 +145,20 @@ async function handleSetLanguage(event) {
             text: `已設定翻譯語言為：${languages.join('、')}`
         });
     } catch (error) {
+        if (error.code === 'too_many_languages') {
+            return client.replyMessage(event.replyToken, {
+                type: 'text',
+                text: `最多只能設定 ${MAX_TARGET_LANGUAGES} 種翻譯語言。`
+            });
+        }
+
+        if (error.code === 'language_too_long') {
+            return client.replyMessage(event.replyToken, {
+                type: 'text',
+                text: `每個語言名稱最多 ${MAX_LANGUAGE_NAME_LENGTH} 個字元。`
+            });
+        }
+
         console.error('Error setting languages:', error);
         return client.replyMessage(event.replyToken, {
             type: 'text',
