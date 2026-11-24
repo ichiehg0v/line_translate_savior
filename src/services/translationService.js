@@ -1,5 +1,9 @@
 const { OpenAI } = require('openai');
 const config = require('../config/config');
+const {
+    normalizeTargetLanguages,
+    assertTranslationInput
+} = require('../utils/translationLimits');
 
 const openai = new OpenAI({
     apiKey: config.openai.apiKey
@@ -7,6 +11,9 @@ const openai = new OpenAI({
 
 async function translateText(text, targetLanguages) {
     try {
+        assertTranslationInput(text);
+        const boundedTargetLanguages = normalizeTargetLanguages(targetLanguages);
+
         // 首先翻譯成英文
         const englishResponse = await openai.chat.completions.create({
             model: "gpt-6-luna",
@@ -24,7 +31,7 @@ async function translateText(text, targetLanguages) {
         const translations = { 'English': englishText }; // 使用物件來儲存翻譯結果
 
         // 翻譯成其他目標語言
-        for (const targetLang of targetLanguages) {
+        for (const targetLang of boundedTargetLanguages) {
             if (targetLang.toLowerCase() === 'english') continue; // 跳過英文
 
             const response = await openai.chat.completions.create({
